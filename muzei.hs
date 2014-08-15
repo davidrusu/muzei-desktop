@@ -42,7 +42,7 @@ saveImage :: String -> IO ()
 saveImage uri = do
   let imageName = last $ splitOn "/" uri
   homeDir <- getHomeDirectory
-  let muzeiHome = homeDir ++ "/muzei"
+  let muzeiHome = homeDir ++ "/.muzei"
 
   createDirectoryIfMissing False muzeiHome
   
