@@ -44,23 +44,25 @@ saveImage uri = do
   homeDir <- getHomeDirectory
   let muzeiHome = homeDir ++ "/muzei"
 
-  createDirectoryIfMissing True muzeiHome
+  createDirectoryIfMissing False muzeiHome
   
   let filePath = muzeiHome ++ "/" ++ imageName
   
-  imageExists <- doesFileExist filePath
-  putStrLn ("Checking if " ++ filePath ++ " exists: " ++ (show imageExists))
-  case imageExists of
-    True  -> return ()
-    False -> writeImage filePath uri
-  
+  downloadImageIfMissing filePath uri
+
   let bgProcess = shell ("feh --bg-fill " ++ filePath)
   _ <- createProcess bgProcess
   return ()
 
+downloadImageIfMissing :: String -> String -> IO ()
+downloadImageIfMissing filePath uri = do
+  imageExists <- doesFileExist filePath
+  case imageExists of
+    True  -> return ()
+    False -> writeImage filePath uri
+  
 writeImage :: String -> String-> IO ()
 writeImage filePath uri = do
   result <- openLazyURI uri
   let img = getResult result
-  putStrLn ("Writing " ++ filePath)
   BL.writeFile filePath img
