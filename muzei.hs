@@ -24,14 +24,11 @@ instance FromJSON ImageDetails
 main = do
   doc <- openURIString "http://muzeiapi.appspot.com/featured?cachebust=1"
   let result = getResult doc
-  setWallpaper result
+  saveImage $ imageUri $ jsonToImageDetails result
 
 getResult :: Either String a -> a
 getResult (Left errMsg) = error errMsg
 getResult (Right result) = result
-
-setWallpaper :: String -> IO ()
-setWallpaper result = saveImage $ imageUri $ jsonToImageDetails result
 
 jsonToImageDetails :: String -> ImageDetails
 jsonToImageDetails json = case decode $ BL.pack json of
@@ -49,10 +46,7 @@ saveImage uri = do
   let filePath = muzeiHome ++ "/" ++ imageName
   
   downloadImageIfMissing filePath uri
-
-  let bgProcess = shell ("feh --bg-fill " ++ filePath)
-  _ <- createProcess bgProcess
-  return ()
+  setWallpaper filePath
 
 downloadImageIfMissing :: String -> String -> IO ()
 downloadImageIfMissing filePath uri = do
@@ -66,3 +60,9 @@ writeImage filePath uri = do
   result <- openLazyURI uri
   let img = getResult result
   BL.writeFile filePath img
+
+setWallpaper :: String -> IO ()
+setWallpaper filePath = do
+  let bgProcess = shell ("feh --bg-max " ++ filePath)
+  _ <- createProcess bgProcess
+  return ()
