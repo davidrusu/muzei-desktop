@@ -27,3 +27,4 @@ You'll need these packages:
 Then just build with ghc
 
     ghc muzei
+
