@@ -1,10 +1,10 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
-import Control.Concurrent
-import System.Posix.Daemonize
+import Control.Concurrent (threadDelay)
+import System.Posix.Daemonize (daemonize)
 import Network.Curl.Download (openURIString)
 import Network.Curl.Download.Lazy (openLazyURI)
-import Data.Aeson (FromJSON, ToJSON, decode, encode)
+import Data.Aeson (FromJSON, decode)
 import Data.List.Split (splitOn)
 import System.Directory (getHomeDirectory, createDirectoryIfMissing, doesFileExist)
 import System.Process (shell, createProcess)
@@ -23,66 +23,48 @@ data ImageDetails = ImageDetails {
 
 instance FromJSON ImageDetails
 
+main :: IO ()
 main = daemonize loop
--- main = serviced CreateDaemon {
---          privilegedAction = return (),
---          program = loop,
---          name = Nothing,
---          user = Nothing,
---          group = Nothing,
---          syslogOptions = [],
---          pidfileDirectory = Nothing,
---          killWait = Just 4
---        }
 
+loop :: IO ()
 loop = do
-  --print "starting loop"
-  appendFile "/tmp/yo" "starting loop\n"
   fetchResult <- fetchImageAndSetBackground
-  appendFile "/tmp/yo" ((show fetchResult) ++ "\n")
-  let sleepTime = case fetchResult of
-                    Left errMsg   -> 10^7   -- 10 second
-                    Right success -> 3600 * 10^6 -- 1 hour
-
-  threadDelay sleepTime
+  threadDelay $ determineSleepTime fetchResult
   loop
+
+determineSleepTime :: Either String String -> Int
+determineSleepTime fetchResult = 
+    case fetchResult of 
+      (Left _)  -> secondsToMicroSeconds 10   --try again in 10s
+      (Right _) -> secondsToMicroSeconds 3600 -- 1 hour
+    where secondsToMicroSeconds = (*10^6)
 
 fetchImageAndSetBackground :: IO (Either String String)
 fetchImageAndSetBackground = do
   doc <- openURIString "http://muzeiapi.appspot.com/featured?cachebust=1"
-  
   case doc of
     Left errMsg  -> return $ Left errMsg
-    Right result -> case jsonToImageDetails result of 
-                               Left errMsg   -> return $ Left errMsg
-                               Right imgDtls -> saveImage $ imageUri imgDtls
+    Right result -> jsonToImageDetails result 
 
-getResult :: Either String a -> a
-getResult (Left errMsg) = error errMsg
-getResult (Right result) = result
-
-jsonToImageDetails :: String -> Either String ImageDetails
+jsonToImageDetails :: String -> IO (Either String String)
 jsonToImageDetails json = case decode $ BL.pack json of
-                            Nothing      -> Left "failed to get json"
-                            Just imgDtls -> Right imgDtls
+                            Nothing      -> return $ Left "failed to get json"
+                            Just imgDtls -> saveImage $ imageUri imgDtls
 
 saveImage :: String -> IO (Either String String)
 saveImage uri = do
-  let imageName = last $ splitOn "/" uri
   homeDir <- getHomeDirectory
   let muzeiHome = homeDir ++ "/.muzei"
-
   createDirectoryIfMissing False muzeiHome
   
+  let imageName = last $ splitOn "/" uri
   let filePath = muzeiHome ++ "/" ++ imageName
   
   downloadResult <- downloadImageIfMissing filePath uri
 
   case downloadResult of
     Left errMsg      -> return $ Left errMsg
-    Right successMsg -> do
-                        setWallpaper filePath
-                        return $ Right ("Set wallpaper: "++filePath)
+    Right successMsg -> setWallpaper filePath
 
 downloadImageIfMissing :: String -> String -> IO (Either String String)
 downloadImageIfMissing filePath uri = do
@@ -100,8 +82,8 @@ writeImage filePath uri = do
                 BL.writeFile filePath img
                 return $ Right "Successfully wrote image"
 
-setWallpaper :: String -> IO ()
+setWallpaper :: String -> IO (Either String String)
 setWallpaper filePath = do
   let bgProcess = shell ("feh --bg-max " ++ filePath)
   _ <- createProcess bgProcess
-  return ()
+  return $ Right ("Set wallpaper " ++ filePath)
