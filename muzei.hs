@@ -1,6 +1,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
-
+import Control.Concurrent
+import System.Posix.Daemonize
 import Network.Curl.Download (openURIString)
 import Network.Curl.Download.Lazy (openLazyURI)
 import Data.Aeson (FromJSON, ToJSON, decode, encode)
@@ -21,21 +22,51 @@ data ImageDetails = ImageDetails {
     } deriving (Show, Generic)
 
 instance FromJSON ImageDetails
-main = do
+
+main = daemonize loop
+-- main = serviced CreateDaemon {
+--          privilegedAction = return (),
+--          program = loop,
+--          name = Nothing,
+--          user = Nothing,
+--          group = Nothing,
+--          syslogOptions = [],
+--          pidfileDirectory = Nothing,
+--          killWait = Just 4
+--        }
+
+loop = do
+  --print "starting loop"
+  appendFile "/tmp/yo" "starting loop\n"
+  fetchResult <- fetchImageAndSetBackground
+  appendFile "/tmp/yo" ((show fetchResult) ++ "\n")
+  let sleepTime = case fetchResult of
+                    Left errMsg   -> 10^7   -- 10 second
+                    Right success -> 3600 * 10^6 -- 1 hour
+
+  threadDelay sleepTime
+  loop
+
+fetchImageAndSetBackground :: IO (Either String String)
+fetchImageAndSetBackground = do
   doc <- openURIString "http://muzeiapi.appspot.com/featured?cachebust=1"
-  let result = getResult doc
-  saveImage $ imageUri $ jsonToImageDetails result
+  
+  case doc of
+    Left errMsg  -> return $ Left errMsg
+    Right result -> case jsonToImageDetails result of 
+                               Left errMsg   -> return $ Left errMsg
+                               Right imgDtls -> saveImage $ imageUri imgDtls
 
 getResult :: Either String a -> a
 getResult (Left errMsg) = error errMsg
 getResult (Right result) = result
 
-jsonToImageDetails :: String -> ImageDetails
+jsonToImageDetails :: String -> Either String ImageDetails
 jsonToImageDetails json = case decode $ BL.pack json of
-                            Nothing -> error "failed to get json"
-                            Just imgDts -> imgDts
+                            Nothing      -> Left "failed to get json"
+                            Just imgDtls -> Right imgDtls
 
-saveImage :: String -> IO ()
+saveImage :: String -> IO (Either String String)
 saveImage uri = do
   let imageName = last $ splitOn "/" uri
   homeDir <- getHomeDirectory
@@ -45,21 +76,29 @@ saveImage uri = do
   
   let filePath = muzeiHome ++ "/" ++ imageName
   
-  downloadImageIfMissing filePath uri
-  setWallpaper filePath
+  downloadResult <- downloadImageIfMissing filePath uri
 
-downloadImageIfMissing :: String -> String -> IO ()
+  case downloadResult of
+    Left errMsg      -> return $ Left errMsg
+    Right successMsg -> do
+                        setWallpaper filePath
+                        return $ Right ("Set wallpaper: "++filePath)
+
+downloadImageIfMissing :: String -> String -> IO (Either String String)
 downloadImageIfMissing filePath uri = do
   imageExists <- doesFileExist filePath
   case imageExists of
-    True  -> return ()
+    True  -> return $ Right "Image already existes"
     False -> writeImage filePath uri
   
-writeImage :: String -> String-> IO ()
+writeImage :: String -> String-> IO (Either String String)
 writeImage filePath uri = do
   result <- openLazyURI uri
-  let img = getResult result
-  BL.writeFile filePath img
+  case result of
+    Left errMsg -> return $ Left errMsg
+    Right img   -> do
+                BL.writeFile filePath img
+                return $ Right "Successfully wrote image"
 
 setWallpaper :: String -> IO ()
 setWallpaper filePath = do
