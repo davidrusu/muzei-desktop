@@ -10,14 +10,11 @@ Install
 -------
 You'll need to install feh, It's used to set the wallpaper.
 
-To automatically get the new wallpaper, set a cron job:
-
-    0 * * * * /path/to/muzei
-
 Building
 --------
 
 You'll need these packages:
+  - [hdaemonize](http://hackage.haskell.org/package/hdaemonize-0.4) -- Simple daemonizing library
   - [aeson](http://hackage.haskell.org/package/aeson-0.6.1.0) -- Awesome JSON parser
   - [download-curl](http://hackage.haskell.org/package/download-curl) -- Used to fetch data and images
   - [split](http://hackage.haskell.org/package/split) -- package for splitting lists
@@ -28,3 +25,4 @@ Then just build with ghc
 
     ghc muzei
 
+put the binary somewhere and add it to your init file
