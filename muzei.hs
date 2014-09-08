@@ -7,7 +7,8 @@ import Network.Curl.Download.Lazy (openLazyURI)
 import Data.Aeson (FromJSON, decode)
 import Data.List.Split (splitOn)
 import System.Directory (getHomeDirectory, createDirectoryIfMissing, doesFileExist)
-import System.Process (shell, createProcess)
+import System.Process (shell, createProcess, readProcessWithExitCode)
+import System.Exit
 import qualified Data.ByteString.Lazy.Char8 as BL 
 
 import GHC.Generics (Generic)
@@ -23,6 +24,8 @@ data ImageDetails = ImageDetails {
 
 instance FromJSON ImageDetails
 
+data WindowManager = Xfce | Other deriving (Show)
+
 main :: IO ()
 main = daemonize loop
 
@@ -35,8 +38,8 @@ loop = do
 determineSleepTime :: Either String String -> Int
 determineSleepTime fetchResult = 
     case fetchResult of 
-      (Left _)  -> secondsToMicroSeconds 10   --try again in 10s
-      (Right _) -> secondsToMicroSeconds 3600 -- 1 hour
+      (Left _)  -> secondsToMicroSeconds 1   -- try again in 1s
+      (Right _) -> secondsToMicroSeconds 600 -- check for art in ten minutes
     where secondsToMicroSeconds = (*10^6)
 
 fetchImageAndSetBackground :: IO (Either String String)
@@ -84,6 +87,18 @@ writeImage filePath uri = do
 
 setWallpaper :: String -> IO (Either String String)
 setWallpaper filePath = do
-  let bgProcess = shell ("feh --bg-max " ++ filePath)
+  desktopSession <- checkSession
+  let bgProcess = getWallpaperProcess desktopSession filePath
   _ <- createProcess bgProcess
   return $ Right ("Set wallpaper " ++ filePath)
+
+checkSession :: IO (WindowManager)
+checkSession = do
+  (exitCode, output, _) <- readProcessWithExitCode "pgrep" ["xfdesktop"] ""
+  case exitCode of
+    ExitSuccess   -> return Xfce
+    ExitFailure _ -> return Other
+
+
+getWallpaperProcess Xfce filePath  = shell ("xfconf-query --channel xfce4-desktop --property /backdrop/screen0/monitor0/image-path --set " ++ filePath)
+getWallpaperProcess Other filePath = shell ("feh --bg-fill " ++ filePath)
