@@ -10,7 +10,7 @@ Have your background set to a new beautiful art piece every day.
 Get the app for matching wallpaper fun!.
 
 
-*I've only tested it on with no desktop environment and with Xfce*
+*I've only tested it with no desktop environment and with Xfce*
 
 Install
 -------
