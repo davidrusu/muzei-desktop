@@ -10,23 +10,24 @@ Have your background set to a new beautiful art piece every day.
 Get the app for matching wallpaper fun!.
 
 
+*I've only tested it on with no desktop environment and with Xfce*
+
 Install
 -------
-You'll need to install feh, It's used to set the wallpaper.
+If you are not using Xfce, you will need to install feh
 
-Building
---------
+Clone this repo
 
-You'll need these packages:
-  - [hdaemonize](http://hackage.haskell.org/package/hdaemonize-0.4) -- Simple daemonizing library
-  - [aeson](http://hackage.haskell.org/package/aeson-0.6.1.0) -- Awesome JSON parser
-  - [download-curl](http://hackage.haskell.org/package/download-curl) -- Used to fetch data and images
-  - [split](http://hackage.haskell.org/package/split) -- package for splitting lists
-  - [directory](http://hackage.haskell.org/package/directory)
-  - [process](http://hackage.haskell.org/package/process)
+    git clone https://github.com/davidrusu/muzei-desktop
+    cabal install
 
-Then just build with ghc
+the binary will be:
 
-    ghc muzei
+    ./dist/build/MuzeiDesktop/MuzeiDesktop
 
-put the binary somewhere and add it to your init file
+put it somewhere and add it to your init script
+
+
+All wallpapers will be stored in
+
+    ~/.muzei/
