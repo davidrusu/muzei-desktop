@@ -7,8 +7,6 @@ let
   
 };
   in pkgs.lib.overrideDerivation haskellPackages.muzeiForDesktop (attrs: {
-    buildInputs = [ pkgs.git
-                    pkgs.less
-                    haskellPackages.cabalInstall
+    buildInputs = [ haskellPackages.cabalInstall
                   ] ++ attrs.buildInputs;
 })
