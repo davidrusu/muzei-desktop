@@ -5,8 +5,16 @@ let
       muzeiForDesktop = self.callPackage ./. {};
     };
   
-};
+  };
+  
+  systemPackages = with pkgs; [
+     stdenv
+     git
+     feh
+  ];
+  
   in pkgs.lib.overrideDerivation haskellPackages.muzeiForDesktop (attrs: {
+
     buildInputs = [ haskellPackages.cabalInstall
-                  ] ++ attrs.buildInputs;
+                  ] ++ attrs.buildInputs ++ systemPackages;
 })
