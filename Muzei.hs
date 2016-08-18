@@ -14,12 +14,13 @@ import qualified Data.ByteString.Lazy.Char8 as BL
 import GHC.Generics (Generic)
 
 data ArtMetaData = ArtMetaData {
-      byline     :: String, -- "Author, YEAR"
-      detailsUri :: String, -- link to wikiart
-      imageUri   :: String, -- link to image
-      nextTime   :: String, -- time stamp
-      thumbUri   :: String, -- link to thumbnail image
-      title      :: String  -- painting title
+      attribution :: String, -- "wikiart.org"
+      byline      :: String, -- "Author, YEAR"
+      detailsUri  :: String, -- link to wikiart
+      imageUri    :: String, -- link to image
+      nextTime    :: String, -- time stamp
+      thumbUri    :: String, -- link to thumbnail image
+      title       :: String  -- painting title
     } deriving (Show, Generic)
 
 instance FromJSON ArtMetaData
