@@ -45,7 +45,7 @@ toMicro = (*10^6)
 
 updateWallpaper :: IO (Either String String)
 updateWallpaper = do
-  result <- openURIString "http://muzeiapi.appspot.com/featured?cachebust=1"
+  result <- openURIString "https://muzeiapi.appspot.com/featured?cachebust=1"
   case result >>= toArtMetaData of
     Left err  -> return $ Left err
     Right art -> saveImage art
@@ -106,4 +106,4 @@ checkSession = do
 
 wallpaperCommand :: WindowManager -> String -> String
 wallpaperCommand Xfce filePath  = "xfconf-query --channel xfce4-desktop --property /backdrop/screen0/monitor0/image-path --set " ++ filePath
-wallpaperCommand Other filePath = "feh --bg-fill " ++ filePath
+wallpaperCommand Other filePath = "feh --bg-max " ++ filePath

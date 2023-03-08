@@ -1,20 +1,13 @@
 let
-  pkgs = import <nixpkgs> {};
-  haskellPackages = pkgs.haskellPackages.override {
-    extension = self: super: {
-      muzeiForDesktop = self.callPackage ./. {};
-    };
-  
-  };
-  
-  systemPackages = with pkgs; [
-     stdenv
-     git
+  nixpkgs = import <nixpkgs> {};
+in
+  with nixpkgs;
+  stdenv.mkDerivation {
+    name = "haskell";
+    buildInputs = [
      feh
-  ];
-  
-  in pkgs.lib.overrideDerivation haskellPackages.muzeiForDesktop (attrs: {
-
-    buildInputs = [ haskellPackages.cabalInstall
-                  ] ++ attrs.buildInputs ++ systemPackages;
-})
+     ghc
+     curl
+     haskellPackages.cabal-install
+    ];
+  }
